@@ -1,5 +1,5 @@
 develop:
-	npx serve
+	npm run serve
 
 install:
 	npm ci
@@ -13,8 +13,5 @@ test:
 
 lint:
 	npx eslint .
-
-publish:
-	npm publish --dry-run
 
 .PHONY: test
