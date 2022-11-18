@@ -5,13 +5,16 @@ const isProduction = process.env.NODE_ENV == 'production';
 
 
 const config = {
-    entry: './src/index.js',
+    entry: './src/js/index.js',
     output: {
         path: path.resolve(__dirname, 'dist'),
     },
+    devtool: 'source-map',
     devServer: {
         open: true,
         host: 'localhost',
+        compress: true,
+        port: 9001
     },
     plugins: [
         new HtmlWebpackPlugin({
@@ -70,10 +73,6 @@ const config = {
                 test: /\.(ttf|eot|svg)(\?[\s\S]+)?$/,
                 use: 'file-loader',
             },
-
-
-            // Add your rules for custom modules here
-            // Learn more about loaders from https://webpack.js.org/loaders/
         ],
     },
 };

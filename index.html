@@ -7,20 +7,49 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>RSS-aggregator</title>
 </head>
-<body>
-    <div class="container">
-        <div class="row">
-            <div class="header">
-                <h1 class="h1">RSS агрегатор</h1>
-                <p>Начните читать RSS сегодня! Это легко, это красиво.</p>
-                <form>
-                    <div class="form-floating mb-3">
-                        <input type="text" class="form-control" id="floatingInput" placeholder="Ссылка RSS">
-                        <label for="floatingInput">Ссылка RSS</label>
-                    </div>
-                </form>
+<body class="d-flex flex-column min-vh-100">
+    <main class="flex-grow-1">
+        <section class="container-fluid bg-dark bg-carbon p-5">
+            <div class="row">
+                <div class="col-md-10 col-lg-8 mx-auto text-white">
+                    <h1 class="display-3 mb-0">RSS агрегатор</h1>
+                    <p class="lead">Начните читать RSS сегодня! Это легко, это красиво.</p>
+                    <form class="rss-form text-body">
+                        <div class="row">
+                            <div class="col">
+                                <div class="form-floating">
+                                    <input id="url-input" autofocus="" required="" name="url" aria-label="url" class="form-control w-100" placeholder="ссылка RSS" autocomplete="off">
+                                    <label for="url-input">Ссылка RSS</label>
+                                </div>
+                            </div>
+                            <div class="col-auto">
+                                <button type="submit" aria-label="add"
+                                        class="h-100 btn btn-lg btn-primary px-sm-5">Добавить
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                    <p class="mt-2 mb-0 text-muted">Пример: https://ru.hexlet.io/lessons.rss</p>
+                    <p class="feedback m-0 position-absolute small text-danger"></p>
+                </div>
+            </div>
+        </section>
+
+        <section class="container-fluid container-xxl p-5">
+            <div class="row">
+                <div class="col-md-10 col-lg-8 order-1 mx-auto posts"></div>
+                <div class="col-md-10 col-lg-4 mx-auto order-0 order-lg-1 feeds"></div>
+            </div>
+        </section>
+    </main>
+    <footer class="footer border-top py-3 mt-5 bg-light">
+        <div class="container-xl">
+            <div class="text-center">
+                created by <a
+              href="https://github.com/antliubimov/frontend-project-11">antliubimov
+            </a>
             </div>
         </div>
-    </div>
+    </footer>
 </body>
 </html>
