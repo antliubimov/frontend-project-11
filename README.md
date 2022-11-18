@@ -8,7 +8,8 @@ Rss Reader is a service for aggregating RSS feeds that makes it easy to read a v
 ## Demo:
 [rss-aggregator](https://frontend-project-11-szqt.vercel.app/)
 ## Overview:
-
+![rss-aggregator](https://raw.githubusercontent.
+com/antliubimov/frontend-project-11/main/screenshot.jpg)
 ## How to use:
 To clone and run this application, you'll need [Git](https://git-scm.com) and [Node.js](https://nodejs.org/en/download/) (which comes with [npm](http://npmjs.com)) installed on your computer. From your command line:
 ```bash
