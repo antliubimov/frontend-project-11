@@ -1,24 +1,43 @@
 import * as yup from 'yup';
-import watch from './view';
+import watch from './view.js';
 
 export default async () => {
-    const state = {
-        rssLink: '',
-        feeds: [],
-        posts: [],
-    };
+  const state = {
+    rssLink: '',
+    feeds: [],
+    posts: [],
+  };
 
-    let rssSchema = yup.object({
-        url: yup.string().required().url(),
-    });
+  const elements = {
+    rssForm: document.querySelector('.rss-form'),
+    fields: {},
+    errorFields: {},
+  };
 
-    const rss = await rssSchema.validate();
+  // Неизвестная ошибка. Что-то пошло не так.
+  // Ресурс не содержит валидный RSS
+  // RSS успешно загружен
 
-    const rssForm = document.querySelector('.rss-form');
-    const urlInput = document.querySelector('#url-input');
+  const rssSchema = yup.object({
+    url: yup.string().required().url(),
+  });
 
-    rssForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-    });
+  const watchedState = watch(elements, state);
 
+  elements.rssForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const newRSS = Object.fromEntries(formData);
+    try {
+      await rssSchema.validate(newRSS);
+      watchedState.rssForm.valid = true;
+      watchedState.rssForm.errors = [];
+    } catch (err) {
+      const errors = err.inner.reduce((acc, currErr) => {
+        const { path, message } = currErr;
+        return { ...acc, [path]: [...(acc[path] || []), message] };
+      }, {});
+      watchedState.rssForm.errors = errors;
+    }
+  });
 };
