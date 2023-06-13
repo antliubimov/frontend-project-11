@@ -1,29 +1,28 @@
 import onChange from 'on-change';
 
 export default (elements, state) => {
-  // const { form, feedback, feeds, posts } = elements;
-  const { feedback } = elements;
+  const { inputForm, feedback } = elements;
 
-  const urlInput = document.querySelector('#url-input');
   const handleErrors = () => {
     feedback.classList.remove('text-success');
     feedback.classList.add('text-danger');
-    feedback.innerText = [state.rssForm.error];
-    urlInput.classList.remove('is-valid');
-    urlInput.classList.add('is-invalid');
+    feedback.innerText = state.rssForm.error;
+    inputForm.classList.remove('is-valid');
+    inputForm.classList.add('is-invalid');
   };
 
   const handleValid = () => {
     feedback.classList.remove('text-danger');
     feedback.classList.add('text-success');
     feedback.innerText = 'RSS успешно загружен';
-    urlInput.classList.remove('is-invalid');
-    urlInput.value = '';
+    inputForm.classList.remove('is-invalid');
+    inputForm.value = '';
+    inputForm.focus();
   };
 
   const watchedState = onChange(state, (path, value) => {
-    if (path === 'rssForm.error') {
-      if (!value) {
+    if (path === 'rssForm') {
+      if (value.valid) {
         handleValid();
       } else {
         handleErrors();

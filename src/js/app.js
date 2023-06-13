@@ -2,15 +2,12 @@ import * as yup from 'yup';
 import watch from './view.js';
 
 export default async () => {
-  //   , t = {
-  //
   //   modal: {
   //     postId: null
   //   },
   //   ui: {
   //     seenPosts: new Set
-  //   }
-  // }
+
   const state = {
     rssForm: {
       status: 'filling',
@@ -29,32 +26,38 @@ export default async () => {
 
   const elements = {
     rssForm: document.querySelector('.rss-form'),
-    input: document.querySelector('.rss-form input'),
+    inputForm: document.querySelector('#url-input'),
     feedback: document.querySelector('.feedback'),
     feedsBox: document.querySelector('.feeds'),
     postsBox: document.querySelector('.posts'),
     submit: document.querySelector('.rss-form button[type="submit"]'),
-    modal: document.querySelector('#modal'),
+    // modal: document.querySelector('#modal'),
   };
 
   // Неизвестная ошибка. Что-то пошло не так.
 
-  const { rssForm, rssLinks } = watch(elements, state);
+  const watchedState = watch(elements, state);
 
-  const rssSchema = yup.string().url('Ресурс не содержит валидный RSS'); // .notOneOf(watchedState.rssLinks, 'RSS уже существует');
+  const rssSchema = yup.string().url('Ресурс не содержит валидный RSS');
 
   elements.rssForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const newRSS = new FormData(e.target).get('url');
-    return rssSchema.notOneOf(rssLinks, 'RSS уже существует').validate(newRSS)
+    return rssSchema.notOneOf(state.rssLinks, 'RSS уже существует').validate(newRSS)
       .then((rss) => {
-        rssForm.valid = true;
-        rssLinks.push(rss);
-        rssForm.error = null;
+        state.rssLinks.push(rss);
+        watchedState.rssForm = {
+          ...watchedState.rssForm,
+          valid: true,
+          error: null,
+        };
       })
       .catch((err) => {
-        rssForm.valid = false;
-        rssForm.error = err.message;
+        watchedState.rssForm = {
+          ...watchedState.rssForm,
+          valid: false,
+          error: err.message,
+        };
       });
 
     // (t, watchedState.feeds).then((e=>{
