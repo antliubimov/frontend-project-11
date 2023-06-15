@@ -1,4 +1,6 @@
 import * as yup from 'yup';
+import i18next from 'i18next';
+import resources from './locales/index.js';
 import watch from './view.js';
 
 export default async () => {
@@ -20,9 +22,36 @@ export default async () => {
     posts: [],
     loadingProcess: {
       status: 'idle',
-      error: null,
+      errors: null,
     },
   };
+
+  const defaultLanguage = 'ru';
+
+  const i18nextInstance = i18next.createInstance();
+  await i18nextInstance.init({
+    lng: defaultLanguage,
+    debug: false,
+    resources,
+  });
+
+  yup.setLocale({
+    string: {
+      url: () => ({
+        key: 'notUrl',
+      }),
+    },
+    mixed: {
+      required: () => ({
+        key: 'required',
+      }),
+      notOneOf: () => ({
+        key: 'exists',
+      }),
+    },
+  });
+
+  const rssSchema = yup.string().required().url();
 
   const elements = {
     rssForm: document.querySelector('.rss-form'),
@@ -31,32 +60,38 @@ export default async () => {
     feedsBox: document.querySelector('.feeds'),
     postsBox: document.querySelector('.posts'),
     submit: document.querySelector('.rss-form button[type="submit"]'),
-    // modal: document.querySelector('#modal'),
+    modal: document.querySelector('#modal'),
+    heading: document.querySelector('h1'),
+    lead: document.querySelector('.lead'),
+    urlLabel: document.querySelector('label[for="url-input"]'),
   };
 
-  // Неизвестная ошибка. Что-то пошло не так.
+  const watchedState = watch(elements, i18nextInstance, state);
 
-  const watchedState = watch(elements, state);
-
-  const rssSchema = yup.string().url('Ресурс не содержит валидный RSS');
+  watchedState.rssForm = {
+    ...watchedState.rssForm,
+    status: 'init',
+  };
 
   elements.rssForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const newRSS = new FormData(e.target).get('url');
-    return rssSchema.notOneOf(state.rssLinks, 'RSS уже существует').validate(newRSS)
+    return rssSchema.notOneOf(state.rssLinks).validate(newRSS)
       .then((rss) => {
         state.rssLinks.push(rss);
         watchedState.rssForm = {
           ...watchedState.rssForm,
+          status: 'filling',
           valid: true,
-          error: null,
+          errors: null,
         };
       })
       .catch((err) => {
         watchedState.rssForm = {
           ...watchedState.rssForm,
+          status: 'filling',
           valid: false,
-          error: err.message,
+          errors: err.message,
         };
       });
 
