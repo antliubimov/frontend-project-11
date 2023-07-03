@@ -1,28 +1,22 @@
 import * as yup from 'yup';
 import i18next from 'i18next';
+import axios from 'axios';
 import resources from './locales/index.js';
 import watch from './view.js';
 
 export default async () => {
-  //   modal: {
-  //     postId: null
-  //   },
-  //   ui: {
-  //     seenPosts: new Set
-
   const state = {
     rssForm: {
       status: 'filling',
       valid: false,
       error: null,
     },
-    rssLink: '',
     rssLinks: [],
     feeds: [],
     posts: [],
     loadingProcess: {
       status: 'idle',
-      errors: null,
+      error: null,
     },
   };
 
@@ -68,81 +62,78 @@ export default async () => {
 
   const watchedState = watch(elements, i18nextInstance, state);
 
-  watchedState.rssForm = {
-    ...watchedState.rssForm,
-    status: 'init',
+  const createOriginLink = (rss) => {
+    const url = 'https://allorigins.hexlet.app/get?disableCache=true&url=';
+    return `${url}${encodeURIComponent(rss)}`;
+  };
+
+  const validateRss = (rss) => rssSchema.notOneOf(state.rssLinks).validate(rss)
+    .then(() => null)
+    .catch((err) => {
+      watchedState.rssForm = {
+        ...watchedState.rssForm,
+        status: 'filling',
+        valid: false,
+        error: err.message,
+      };
+    });
+
+  const parseData = (data) => {
+    const xmlStr = data.contents;
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(xmlStr, 'text/xml');
+    console.log(doc)
+    const errorNode = doc.querySelector('parsererror');
+    if (errorNode) {
+      const err = new Error(errorNode.textContent);
+      err.isParsingError = true;
+      throw err;
+    }
+    return {
+      title: doc.querySelector('channel > title').textContent,
+      description: doc.querySelector('channel > description').textContent,
+      items: [...doc.querySelectorAll('item')].map((item) => ({
+        title: item.querySelector('title').textContent,
+        link: item.querySelector('link').textContent,
+        description: item.querySelector('description').textContent,
+      })),
+    };
   };
 
   elements.rssForm.addEventListener('submit', (e) => {
     e.preventDefault();
-    const newRSS = new FormData(e.target).get('url');
-    return rssSchema.notOneOf(state.rssLinks).validate(newRSS)
+    const newRss = new FormData(e.target).get('url');
+    validateRss(newRss)
       .then((rss) => {
-        state.rssLinks.push(rss);
-        watchedState.rssForm = {
-          ...watchedState.rssForm,
-          status: 'filling',
-          valid: true,
-          errors: null,
+        watchedState.loadingProcess = {
+          ...watchedState.loadingProcess,
+          status: 'loading',
         };
-      })
-      .catch((err) => {
-        watchedState.rssForm = {
-          ...watchedState.rssForm,
-          status: 'filling',
-          valid: false,
-          errors: err.message,
-        };
+        axios.get(createOriginLink(rss))
+          .then((response) => {
+            const data = parseData(response.data);
+            watchedState.loadingProcess = {
+              ...watchedState.loadingProcess,
+              status: 'idle',
+              error: null,
+            };
+            watchedState.rssForm = {
+              ...watchedState.rssForm,
+              status: 'filling',
+              error: null,
+            };
+          })
+          .catch((err) => {
+            let error = null;
+            if (err.isParsingError) {
+              error = 'noRss';
+            } else if (err.isAxiosError) {
+              error = 'network';
+            } else {
+              error = 'unknown';
+            }
+            watchedState.loadingProcess = { error, status: 'failed' };
+          });
       });
-
-    // (t, watchedState.feeds).then((e=>{
-    //     e ? watchedState.form = {
-    //       ...watchedState.form,
-    //       valid: false,
-    //       error: e.key
-    //     } : (watchedState.form = {
-    //       ...watchedState.form,
-    //       valid: true,
-    //       error: null
-    //     },
-    //       ((e,t)=>{
-    //           e.loadingProcess.status = "loading";
-    //           const n = jo(t);
-    //           Ci.get(n, {
-    //             timeout: 1e4
-    //           }).then((n=>{
-    //               const r = Hs(n.data.contents)
-    //                 , i = {
-    //                 url: t,
-    //                 id: Ai(),
-    //                 title: r.title,
-    //                 description: r.descrpition
-    //               }
-    //                 , s = r.items.map((e=>({
-    //                 ...e,
-    //                 channelId: i.id,
-    //                 id: Ai()
-    //               })));
-    //               e.posts.unshift(...s),
-    //                 e.feeds.unshift(i),
-    //                 e.loadingProcess.error = null,
-    //                 e.loadingProcess.status = "idle",
-    //                 e.form = {
-    //                   ...e.form,
-    //                   status: "filling",
-    //                   error: null
-    //                 }
-    //             }
-    //           )).catch((t=>{
-    //               console.log(t),
-    //  e.loadingProcess.error =
-    // (e=>e.isParsingError ? "noRss" : e.isAxiosError ? "network" : "unknown")(t),
-    //                 e.loadingProcess.status = "failed"
-    //             }
-    //           ))
-    //         }
-    //       )(s, t))
-    //   }
-    // ))
   });
 };
