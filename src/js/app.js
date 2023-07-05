@@ -69,20 +69,12 @@ export default async () => {
 
   const validateRss = (rss) => rssSchema.notOneOf(state.rssLinks).validate(rss)
     .then(() => null)
-    .catch((err) => {
-      watchedState.rssForm = {
-        ...watchedState.rssForm,
-        status: 'filling',
-        valid: false,
-        error: err.message,
-      };
-    });
+    .catch((err) => err.message);
 
   const parseData = (data) => {
     const xmlStr = data.contents;
     const parser = new DOMParser();
     const doc = parser.parseFromString(xmlStr, 'text/xml');
-    console.log(doc)
     const errorNode = doc.querySelector('parsererror');
     if (errorNode) {
       const err = new Error(errorNode.textContent);
@@ -100,40 +92,57 @@ export default async () => {
     };
   };
 
+  const getData = (link) => {
+    axios.get(link)
+      .then((response) => {
+        const data = parseData(response.data);
+        console.log(data);
+        watchedState.loadingProcess.error = null;
+        watchedState.loadingProcess.status = 'idle';
+        watchedState.rssForm = {
+          ...watchedState.rssForm,
+          status: 'filling',
+          error: null,
+        };
+      })
+      .catch((loadErr) => {
+        let error = null;
+        if (loadErr.isParsingError) {
+          error = 'noRss';
+        } else if (loadErr.isAxiosError) {
+          error = 'network';
+        } else {
+          error = 'unknown';
+        }
+        watchedState.loadingProcess.error = error;
+        watchedState.loadingProcess.status = 'failed';
+      });
+  };
+
   elements.rssForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const newRss = new FormData(e.target).get('url');
-    validateRss(newRss)
-      .then((rss) => {
-        watchedState.loadingProcess = {
-          ...watchedState.loadingProcess,
-          status: 'loading',
-        };
-        axios.get(createOriginLink(rss))
-          .then((response) => {
-            const data = parseData(response.data);
-            watchedState.loadingProcess = {
-              ...watchedState.loadingProcess,
-              status: 'idle',
-              error: null,
-            };
-            watchedState.rssForm = {
-              ...watchedState.rssForm,
-              status: 'filling',
-              error: null,
-            };
-          })
-          .catch((err) => {
-            let error = null;
-            if (err.isParsingError) {
-              error = 'noRss';
-            } else if (err.isAxiosError) {
-              error = 'network';
-            } else {
-              error = 'unknown';
-            }
-            watchedState.loadingProcess = { error, status: 'failed' };
-          });
+    console.log(newRss);
+    return validateRss(newRss)
+      .then((err) => {
+        if (err) {
+          watchedState.rssForm = {
+            ...watchedState.rssForm,
+            status: 'filling',
+            valid: false,
+            error: err,
+          };
+        } else {
+          watchedState.rssForm = {
+            ...watchedState.rssForm,
+            status: 'filling',
+            valid: true,
+            error: null,
+          };
+          watchedState.loadingProcess.status = 'loading';
+          const link = createOriginLink(newRss);
+          getData(link);
+        }
       });
   });
 };

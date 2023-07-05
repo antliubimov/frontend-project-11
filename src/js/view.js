@@ -16,13 +16,6 @@ export default (elements, i18n, state) => {
     urlLabel.innerText = i18n.t('components.urlLabel');
   };
   init();
-  const handleErrors = () => {
-    feedback.classList.remove('text-success');
-    feedback.classList.add('text-danger');
-    feedback.innerText = i18n.t(`errors.${state.rssForm.error ? state.rssForm.error.key : state.loadingProcess.error}`);
-    inputForm.classList.remove('is-valid');
-    inputForm.classList.add('is-invalid');
-  };
 
   const handleValid = () => {
     submit.disabled = false;
@@ -35,47 +28,52 @@ export default (elements, i18n, state) => {
     inputForm.focus();
   };
 
+  const rssFormView = (formState) => {
+    const { rssForm: { valid, error } } = formState;
+    if (valid) {
+      inputForm.classList.remove('is-invalid');
+    } else {
+      inputForm.classList.add('is-invalid');
+      feedback.classList.add('text-danger');
+      feedback.textContent = i18n.t(`errors.${error.key}`);
+    }
+  };
+  const loadingProcessView = (loadingState) => {
+    const { loadingProcess: { status, error } } = loadingState;
+    switch (status) {
+      case 'failed':
+        submit.disabled = false;
+        inputForm.removeAttribute('readonly');
+        feedback.classList.add('text-danger');
+        feedback.textContent = i18n.t(`errors.${error}`);
+        break;
+      case 'loading':
+        submit.disabled = true;
+        inputForm.setAttribute('readonly', true);
+        feedback.classList.remove('text-success');
+        feedback.classList.remove('text-danger');
+        feedback.textContent = '';
+        break;
+      case 'idle':
+        handleValid();
+        break;
+      default:
+        throw new Error(`Unknown loadingProcess status: '${status}'`);
+    }
+  };
+
   const watchedState = onChange(state, (path) => {
-    console.log(watchedState);
     switch (path) {
       case 'rssForm':
-        ((value) => {
-          const { rssForm: { valid, error } } = value;
-          if (valid) {
-            inputForm.classList.remove('is-invalid');
-          } else {
-            inputForm.classList.add('is-invalid');
-            feedback.classList.add('text-danger');
-            feedback.textContent = i18n.t(`errors.${error.key}`);
-          }
-        })(state);
+        rssFormView(state);
         break;
-      case 'loadingProcess':
-        ((value) => {
-          const { loadingProcess: { status, error } } = value;
-          switch (status) {
-            case 'failed':
-              submit.disabled = false;
-              inputForm.removeAttribute('readonly');
-              feedback.classList.add('text-danger');
-              feedback.textContent = i18n.t(`errors.${error}`);
-              break;
-            case 'loading':
-              submit.disabled = true;
-              inputForm.setAttribute('readonly', true);
-              feedback.classList.remove('text-success');
-              feedback.classList.remove('text-danger');
-              feedback.textContent = '';
-              break;
-            case 'idle':
-              handleValid();
-              break;
-            default:
-              throw new Error(`Unknown loadingProcess status: '${status}'`);
-          }
-        })(state);
+      case 'loadingProcess.status':
+        loadingProcessView(state);
         break;
+      default:
+        return watchedState;
     }
+    return watchedState;
   });
 
   return watchedState;
