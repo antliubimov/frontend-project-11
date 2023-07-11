@@ -1,7 +1,7 @@
 import * as yup from 'yup';
 import i18next from 'i18next';
-import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
+import axios from 'axios';
 import resources from './locales/index.js';
 import watch from './view.js';
 
@@ -94,7 +94,7 @@ export default async () => {
     };
   };
 
-  const setFeedPosts = (url, data) => {
+  const getFeedPosts = (url, data) => {
     const id = uuidv4();
     const { title, description, items } = data;
     const feed = {
@@ -103,22 +103,21 @@ export default async () => {
       title,
       description,
     };
-    watchedState.feeds.unshift(feed);
-    items.forEach(({ title: titlePost, link, description: descriptionPost }) => {
-      const post = {
-        id: uuidv4(),
-        feedId: id,
-        titlePost,
-        link,
-        descriptionPost,
-      };
-      watchedState.posts.unshift(post);
-    });
+    const posts = items.map(({ title: titlePost, link, description: descriptionPost }) => ({
+      id: uuidv4(),
+      feedId: id,
+      title: titlePost,
+      link,
+      description: descriptionPost,
+    }));
+    return { feed, posts };
   };
-  const getData = (rss, link) => {
+
+  const getData = (rss) => {
+    const link = createOriginLink(rss);
     axios.get(link)
-      .then((response) => {
-        const data = parseData(response.data);
+      .then((response) => parseData(response.data))
+      .then((data) => {
         watchedState.loadingProcess.error = null;
         watchedState.loadingProcess.status = 'idle';
         watchedState.rssForm = {
@@ -126,7 +125,9 @@ export default async () => {
           status: 'filling',
           error: null,
         };
-        setFeedPosts(rss, data);
+        const { feed, posts } = getFeedPosts(rss, data);
+        watchedState.feeds.unshift(feed);
+        watchedState.posts.unshift(...posts);
       })
       .catch((loadErr) => {
         let error = null;
@@ -162,8 +163,7 @@ export default async () => {
             error: null,
           };
           watchedState.loadingProcess.status = 'loading';
-          const link = createOriginLink(rss);
-          getData(rss, link);
+          getData(rss);
         }
       });
   });
