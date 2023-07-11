@@ -1,6 +1,7 @@
 import * as yup from 'yup';
 import i18next from 'i18next';
 import axios from 'axios';
+import { v4 as uuidv4 } from 'uuid';
 import resources from './locales/index.js';
 import watch from './view.js';
 
@@ -92,11 +93,31 @@ export default async () => {
     };
   };
 
-  const getData = (link) => {
+  const setFeedPosts = (url, data) => {
+    const id = uuidv4();
+    const { title, description, items } = data;
+    const feed = {
+      id,
+      url,
+      title,
+      description,
+    };
+    watchedState.feeds.unshift(feed);
+    items.forEach(({ title: titlePost, link, description: descriptionPost }) => {
+      const post = {
+        id: uuidv4(),
+        feedId: id,
+        titlePost,
+        link,
+        descriptionPost,
+      };
+      watchedState.posts.unshift(post);
+    });
+  };
+  const getData = (rss, link) => {
     axios.get(link)
       .then((response) => {
         const data = parseData(response.data);
-        console.log(data);
         watchedState.loadingProcess.error = null;
         watchedState.loadingProcess.status = 'idle';
         watchedState.rssForm = {
@@ -104,6 +125,8 @@ export default async () => {
           status: 'filling',
           error: null,
         };
+        setFeedPosts(rss, data);
+        console.log(state);
       })
       .catch((loadErr) => {
         let error = null;
@@ -119,11 +142,12 @@ export default async () => {
       });
   };
 
+
+
   elements.rssForm.addEventListener('submit', (e) => {
     e.preventDefault();
-    const newRss = new FormData(e.target).get('url');
-    console.log(newRss);
-    return validateRss(newRss)
+    const rss = new FormData(e.target).get('url');
+    return validateRss(rss)
       .then((err) => {
         if (err) {
           watchedState.rssForm = {
@@ -140,8 +164,8 @@ export default async () => {
             error: null,
           };
           watchedState.loadingProcess.status = 'loading';
-          const link = createOriginLink(newRss);
-          getData(link);
+          const link = createOriginLink(rss);
+          getData(rss, link);
         }
       });
   });
