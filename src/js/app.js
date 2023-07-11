@@ -12,7 +12,6 @@ export default async () => {
       valid: false,
       error: null,
     },
-    rssLinks: [],
     feeds: [],
     posts: [],
     loadingProcess: {
@@ -68,7 +67,9 @@ export default async () => {
     return `${url}${encodeURIComponent(rss)}`;
   };
 
-  const validateRss = (rss) => rssSchema.notOneOf(state.rssLinks).validate(rss)
+  const getUrls = () => state.feeds.map((feed) => feed.url);
+
+  const validateRss = (rss) => rssSchema.notOneOf(getUrls()).validate(rss)
     .then(() => null)
     .catch((err) => err.message);
 
@@ -126,7 +127,6 @@ export default async () => {
           error: null,
         };
         setFeedPosts(rss, data);
-        console.log(state);
       })
       .catch((loadErr) => {
         let error = null;
@@ -141,8 +141,6 @@ export default async () => {
         watchedState.loadingProcess.status = 'failed';
       });
   };
-
-
 
   elements.rssForm.addEventListener('submit', (e) => {
     e.preventDefault();
