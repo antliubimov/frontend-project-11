@@ -5,7 +5,7 @@ install:
 	npm ci
 
 build:
-	rm -rf dist
+	rm -rf public
 	NODE_ENV=production npx webpack
 
 test:
