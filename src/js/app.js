@@ -2,8 +2,10 @@ import * as yup from 'yup';
 import i18next from 'i18next';
 import { v4 as uuidv4 } from 'uuid';
 import axios from 'axios';
+import _ from 'lodash';
 import resources from './locales/index.js';
 import watch from './view.js';
+import {logPlugin} from "@babel/preset-env/lib/debug";
 
 export default async () => {
   const state = {
@@ -74,6 +76,7 @@ export default async () => {
     .catch((err) => err.message);
 
   const parseData = (data) => {
+    const { url } = data.status;
     const xmlStr = data.contents;
     const parser = new DOMParser();
     const doc = parser.parseFromString(xmlStr, 'text/xml');
@@ -84,6 +87,7 @@ export default async () => {
       throw err;
     }
     return {
+      url,
       title: doc.querySelector('channel > title').textContent,
       description: doc.querySelector('channel > description').textContent,
       items: [...doc.querySelectorAll('item')].map((item) => ({
@@ -94,28 +98,75 @@ export default async () => {
     };
   };
 
-  const getFeedPosts = (url, data) => {
+  const createPosts = (id, items) => items.map(({ title, link, description }) => ({
+    id: uuidv4(),
+    feedId: id,
+    title,
+    link,
+    description,
+  }));
+
+  const createFeedAndPosts = (data) => {
     const id = uuidv4();
-    const { title, description, items } = data;
+    const {
+      url,
+      title,
+      description,
+      items,
+    } = data;
     const feed = {
       id,
       url,
       title,
       description,
     };
-    const posts = items.map(({ title: titlePost, link, description: descriptionPost }) => ({
-      id: uuidv4(),
-      feedId: id,
-      title: titlePost,
-      link,
-      description: descriptionPost,
-    }));
+    const posts = createPosts(id, items);
     return { feed, posts };
+  };
+
+  const getUrlPosts = (url) => {
+    const feed = state.feeds.find((item) => item.url === url);
+    const { id: feedId } = feed;
+    return state.posts
+      .filter((post) => post.feedId === feedId)
+      .map(({ title, link, description }) => ({ title, link, description }));
+  };
+
+  const comparePosts = (posts) => {
+    const { url, items } = posts;
+    const statePosts = getUrlPosts(url);
+    let diffPosts = _.differenceWith(items, statePosts, _.isEqual);
+    if (diffPosts.length) {
+      diffPosts = createPosts(url, diffPosts);
+    }
+    return diffPosts;
+  };
+
+  const getNewPosts = (urls) => {
+    const requests = urls.map((url) => {
+      const link = createOriginLink(url);
+      return axios.get(link);
+    });
+    return Promise.all(requests)
+      .then((responses) => responses.map(({ data }) => parseData(data)))
+      .then((parsedData) => {
+        console.log(parsedData);
+        const newPosts = parsedData.reduce((acc, item) => {
+          const posts = comparePosts(item);
+          acc.push(...posts);
+          return acc;
+        }, []);
+        if (newPosts.length) {
+          watchedState.posts.unshift(...newPosts);
+        }
+      })
+      .catch((e) => console.log(e))
+      .finally(() => setTimeout(() => getNewPosts(getUrls()), 5000));
   };
 
   const getData = (rss) => {
     const link = createOriginLink(rss);
-    axios.get(link)
+    return axios.get(link)
       .then((response) => parseData(response.data))
       .then((data) => {
         watchedState.loadingProcess.error = null;
@@ -125,7 +176,7 @@ export default async () => {
           status: 'filling',
           error: null,
         };
-        const { feed, posts } = getFeedPosts(rss, data);
+        const { feed, posts } = createFeedAndPosts(data);
         watchedState.feeds.unshift(feed);
         watchedState.posts.unshift(...posts);
       })
@@ -167,4 +218,15 @@ export default async () => {
         }
       });
   });
+
+  setTimeout(() => getNewPosts(getUrls()), 5000);
 };
+
+// https://aljazeera.com/xml/rss/all.xml
+// https://buzzfeed.com/world.xml
+// https://thecipherbrief.com/feed
+// https://feeds.washingtonpost.com/rss/world (отвечает долго, в районе 4-5 секунд, иногда и до 10 доходит)
+// https://rt.com/rss/news
+// http://www.dp.ru/exportnews.xml
+// http://www.fontanka.ru/fontanka.rss
+// http://lenta.ru/l/r/EX/import.rss
