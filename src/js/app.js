@@ -5,7 +5,6 @@ import axios from 'axios';
 import _ from 'lodash';
 import resources from './locales/index.js';
 import watch from './view.js';
-import {logPlugin} from "@babel/preset-env/lib/debug";
 
 export default async () => {
   const state = {
