@@ -3,6 +3,7 @@ import i18next from 'i18next';
 import { v4 as uuidv4 } from 'uuid';
 import axios from 'axios';
 import _ from 'lodash';
+import 'bootstrap';
 import resources from './locales/index.js';
 import watch from './view.js';
 
@@ -18,6 +19,12 @@ export default async () => {
     loadingProcess: {
       status: 'idle',
       error: null,
+    },
+    modal: {
+      postId: null,
+    },
+    uiState: {
+      seenPosts: new Set(),
     },
   };
 
@@ -149,7 +156,6 @@ export default async () => {
     return Promise.all(requests)
       .then((responses) => responses.map(({ data }) => parseData(data)))
       .then((parsedData) => {
-        console.log(parsedData);
         const newPosts = parsedData.reduce((acc, item) => {
           const posts = comparePosts(item);
           acc.push(...posts);
@@ -219,8 +225,15 @@ export default async () => {
   });
 
   setTimeout(() => getNewPosts(getUrls()), 5000);
-};
 
+  elements.postsBox.addEventListener('click', (e) => {
+    if (e.target.dataset.bsToggle === 'modal') {
+      const { id } = e.target.dataset;
+      watchedState.modal.postId = id;
+      watchedState.uiState.seenPosts.add(id);
+    }
+  });
+};
 // https://aljazeera.com/xml/rss/all.xml
 // https://buzzfeed.com/world.xml
 // https://thecipherbrief.com/feed

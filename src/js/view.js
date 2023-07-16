@@ -10,6 +10,7 @@ export default (elements, i18n, state) => {
     submit,
     feedsBox,
     postsBox,
+    modal,
   } = elements;
 
   const init = () => {
@@ -100,7 +101,8 @@ export default (elements, i18n, state) => {
     link.href = post.link;
     link.target = '_blank';
     link.rel = 'norefferer';
-    link.classList.add('fw-bold');
+    const fwClass = state.uiState.seenPosts.has(post.id) ? 'fw-normal' : 'fw-bold';
+    link.classList.add(fwClass);
     link.dataset.id = post.id;
     link.textContent = post.title;
 
@@ -133,6 +135,19 @@ export default (elements, i18n, state) => {
 
   const postsView = (posts) => itemsView(posts, 'components.posts', postsBox, createPost);
 
+  const modalView = (id) => {
+    const post = state.posts.find((item) => item.id === id);
+    const modalTitle = modal.querySelector('#modalLabel');
+    const modalBody = modal.querySelector('.modal-body');
+    const modalCloseBtn = modal.querySelector('.modal-footer button');
+    const modalReadBtn = modal.querySelector('.modal-footer a');
+    modalCloseBtn.innerText = i18n.t('components.modalClose');
+    modalReadBtn.innerText = i18n.t('components.modalRead');
+    modalReadBtn.href = post.link;
+    modalTitle.textContent = post.title;
+    modalBody.textContent = post.description;
+  };
+
   const watchedState = onChange(state, (path, value) => {
     switch (path) {
       case 'rssForm':
@@ -145,7 +160,11 @@ export default (elements, i18n, state) => {
         feedsView(value);
         break;
       case 'posts':
-        postsView(value);
+      case 'uiState.seenPosts':
+        postsView(state.posts);
+        break;
+      case 'modal.postId':
+        modalView(value);
         break;
       default:
         return watchedState;
