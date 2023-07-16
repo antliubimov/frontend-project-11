@@ -16,6 +16,7 @@ export default (elements, i18n, state) => {
     heading.innerText = i18n.t('components.heading');
     lead.innerText = i18n.t('components.lead');
     urlLabel.innerText = i18n.t('components.urlLabel');
+    inputForm.placeholder = i18n.t('components.urlLabel');
   };
   init();
 
