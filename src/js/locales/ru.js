@@ -8,6 +8,8 @@ export default {
       feeds: 'Фиды',
       posts: 'Посты',
       preview: 'Просмотр',
+      modalClose: 'Закрыть',
+      modalRead: 'Читать полностью',
     },
     loadingSuccess: 'RSS успешно загружен',
     errors: {
