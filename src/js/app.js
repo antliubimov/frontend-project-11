@@ -81,8 +81,8 @@ export default async () => {
     .then(() => null)
     .catch((err) => err.message);
 
-  const parseData = (data) => {
-    const { url } = data.status;
+  const parseData = (data, url) => {
+    // const { url } = data.status;
     const xmlStr = data.contents;
     const parser = new DOMParser();
     const doc = parser.parseFromString(xmlStr, 'text/xml');
@@ -172,7 +172,7 @@ export default async () => {
   const getData = (rss) => {
     const link = createOriginLink(rss);
     return axios.get(link)
-      .then((response) => parseData(response.data))
+      .then((response) => parseData(response.data, rss))
       .then((data) => {
         watchedState.loadingProcess.error = null;
         watchedState.loadingProcess.status = 'idle';
